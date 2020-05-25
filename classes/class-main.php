@@ -64,7 +64,7 @@ class Main {
 	public function include_field( $version = false ) {
 
 		// load textdomain.
-		load_plugin_textdomain( 'acf-taxonomy-relationship', false, plugin_basename( dirname( __FILE__ ) ) . '/lang' );
+		//load_plugin_textdomain( 'acf-taxonomy-relationship', false, plugin_basename( dirname( __FILE__ ) ) . '/lang' );
 
 		// include.
 		include_once ACF_TAXONOMY_RELATIONSHIP_DIR . '/classes/class-taxonomy-relationship.php';
