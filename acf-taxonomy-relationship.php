@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Mihdan: ACF Taxonomy Relationship
  * Description: Extends Advanced Custom Fields to allow you to select and order Taxonomy Terms in the same way the standard Relationship field allows with Posts.
- * Version: 1.0
+ * Version: 1.1
  * Author: Mikhail Kobzarev, Dan Beckett
  * Author URI: https://www.kobzarev.com/
  * License: GPLv2 or later
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'ACF_TAXONOMY_RELATIONSHIP_SLUG', 'acf-taxonomy-relationship' );
-define( 'ACF_TAXONOMY_RELATIONSHIP_VERSION', '1.0' );
+define( 'ACF_TAXONOMY_RELATIONSHIP_VERSION', '1.1' );
 define( 'ACF_TAXONOMY_RELATIONSHIP_FILE', __FILE__ );
 define( 'ACF_TAXONOMY_RELATIONSHIP_DIR', __DIR__ );
 define( 'ACF_TAXONOMY_RELATIONSHIP_URL', untrailingslashit( plugin_dir_url( __FILE__ ) ) );
