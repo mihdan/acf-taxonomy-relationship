@@ -87,7 +87,7 @@ class Taxonomy_Relationship extends acf_field {
 	function ajax_query() {
 
 		// validate
-		if( !acf_verify_ajax() ) die();
+		//if( !acf_verify_ajax() ) die();
 
 
 		// get choices
@@ -136,7 +136,7 @@ class Taxonomy_Relationship extends acf_field {
 		// Default args.
 		$args['hide_empty']      = false;
 		$args['suppress_filter'] = true;
-		//$args['fields']     = 'id=>name';
+		$args['orderby']         = 'name';
 
 		// paged.
 		$args['posts_per_page'] = 20;
@@ -170,13 +170,24 @@ class Taxonomy_Relationship extends acf_field {
 
 		$terms = get_terms( $args );
 		usort( $terms, array( $this, 'sort_by_name' ) );
+		/*
+		$hierarchy = array();
+		$this->sort_terms_hierarchically( $terms, $hierarchy );
 
-		//$hierarchy = array();
-		//$this->sort_terms_hierarchically( $terms, $hierarchy );
+		$terms = $hierarchy;
 
-		//wp_send_json_success( $hierarchy );
-
-		//$terms = $hierarchy;
+		if ( $terms ) {
+			foreach ( $terms as $term ) {
+				if ( count( $term->children ) > 0 ) {
+					foreach ( $term->children as $child ) {
+						$results[] = $this->get_post_result( $child->term_id, $this->get_post_title( $child, $field ) );
+					}
+				} else {
+					$results[] = $this->get_post_result( $term->term_id, $this->get_post_title( $term, $field ) );
+				}
+			}
+		}
+		*/
 
 		if ( $terms ) {
 			foreach ( $terms as $term ) {
@@ -289,6 +300,8 @@ class Taxonomy_Relationship extends acf_field {
 	 *  @param array $field An array holding all the field's data.
 	 */
 	public function render_field( $field ) {
+
+		$field['value'] = acf_get_array( $field['value'] );
 
 		// vars.
 		$taxonomy = acf_get_array( $field['taxonomy'] );
@@ -407,11 +420,12 @@ class Taxonomy_Relationship extends acf_field {
 			array(
 				'label'        => __( 'Filter by Taxonomy', 'acf' ),
 				'instructions' => '',
+				'required'     => true,
 				'type'         => 'select',
 				'name'         => 'taxonomy',
 				'choices'      => acf_get_taxonomy_labels(),
-				'multiple'     => 1,
-				'ui'           => 1,
+				'multiple'     => false,
+				'ui'           => false,
 				'placeholder'  => __( 'All taxonomies', 'acf' ),
 			)
 		);
@@ -427,7 +441,7 @@ class Taxonomy_Relationship extends acf_field {
 				'name'         => 'filters',
 				'choices'      => array(
 					'search'   => __( 'Search', 'acf' ),
-					'taxonomy' => __( 'Taxonomy', 'acf' ),
+					//'taxonomy' => __( 'Taxonomy', 'acf' ),
 				),
 			)
 		);
@@ -471,6 +485,47 @@ class Taxonomy_Relationship extends acf_field {
 		);
 	}
 
+	/**
+	 * This filter is appied to the $value after it is loaded from the db.
+	 *
+	 * @param array $value The value found in the database.
+	 * @param int   $post_id The $post_id from which the value was loaded from.
+	 * @param array $field the Field array holding all the field options.
+	 *
+	 * @return array|false|\WP_Error
+	 */
+	public function load_value( $value, $post_id, $field ) {
+		$info     = acf_get_post_id_info( $post_id );
+		$term_ids = wp_get_object_terms( $info['id'], $field['taxonomy'], array( 'fields' => 'ids', 'orderby' => 'none' ) );
+
+		// bail early if no terms.
+		if ( empty( $term_ids ) || is_wp_error( $term_ids ) ) {
+			return false;
+		}
+
+
+		// sort.
+		if ( ! empty( $value ) ) {
+
+			$order = array();
+
+			foreach ( $term_ids as $i => $v ) {
+
+				$order[ $i ] = array_search( $v, $value, true );
+
+			}
+
+			array_multisort( $order, $term_ids );
+
+		}
+
+
+		// update value.
+		$value = $term_ids;
+
+		return $value;
+	}
+
 	/*
 	*  format_value()
 	*
@@ -486,7 +541,6 @@ class Taxonomy_Relationship extends acf_field {
 	*
 	*  @return	$value (mixed) the modified value
 	*/
-
 	function format_value( $value, $post_id, $field ) {
 
 		// bail early if no value
@@ -561,43 +615,34 @@ class Taxonomy_Relationship extends acf_field {
 	}
 
 
-	/*
-	*  update_value()
-	*
-	*  This filter is appied to the $value before it is updated in the db
-	*
-	*  @type	filter
-	*  @since	3.6
-	*  @date	23/01/13
-	*
-	*  @param	$value - the value which will be saved in the database
-	*  @param	$post_id - the $post_id of which the value will be saved
-	*  @param	$field - the field array holding all the field options
-	*
-	*  @return	$value - the modified value
-	*/
-
-	function update_value( $value, $post_id, $field ) {
+	/**
+	 *  This filter is appied to the $value before it is updated in the db
+	 *
+	 * @param mixed $value   - the value which will be saved in the database
+	 * @param int   $post_id - the $post_id of which the value will be saved
+	 * @param    $field   - the field array holding all the field options
+	 *
+	 * @return    $value - the modified value
+	 * @since     3.6
+	 * @date      23/01/13
+	 *
+	 */
+	public function update_value( $value, $post_id, $field ) {
 
 		// Bail early if no value.
-		if( empty($value) ) {
+		if ( empty( $value ) ) {
 			return $value;
 		}
 
-		// Format array of values.
-		// - ensure each value is an id.
-		// - Parse each id as string for SQL LIKE queries.
-		if( acf_is_sequential_array($value) ) {
-			$value = array_map('acf_idval', $value);
-			$value = array_map('strval', $value);
+		$info     = acf_get_post_id_info( $post_id );
+		$term_ids = acf_get_array( $value );
+		$term_ids = array_map( 'intval', $term_ids );
 
-			// Parse single value for id.
-		} else {
-			$value = acf_idval( $value );
-		}
+		wp_set_object_terms( $info['id'], $term_ids, $field['taxonomy'], false );
 
-		// Return value.
-		return $value;
+		delete_field( $field['key'], $info['id'] );
+
+		return false;
 	}
 
 }
