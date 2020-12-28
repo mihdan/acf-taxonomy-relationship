@@ -424,8 +424,8 @@ class Taxonomy_Relationship extends acf_field {
 				'type'         => 'select',
 				'name'         => 'taxonomy',
 				'choices'      => acf_get_taxonomy_labels(),
-				'multiple'     => false,
-				'ui'           => false,
+				'multiple'     => true,
+				'ui'           => true,
 				'placeholder'  => __( 'All taxonomies', 'acf' ),
 			)
 		);
@@ -638,7 +638,9 @@ class Taxonomy_Relationship extends acf_field {
 		$term_ids = acf_get_array( $value );
 		$term_ids = array_map( 'intval', $term_ids );
 
-		wp_set_object_terms( $info['id'], $term_ids, $field['taxonomy'], false );
+		foreach ( $field['taxonomy'] as $taxonomy ) {
+			wp_set_object_terms( $info['id'], $term_ids, $taxonomy, false );
+		}
 
 		delete_field( $field['key'], $info['id'] );
 
